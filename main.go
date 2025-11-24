@@ -6,12 +6,19 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/joho/godotenv"
+
 	"github-setup-app/infrastructure/github"
 	"github-setup-app/interface/handler"
 	"github-setup-app/usecase"
 )
 
 func main() {
+	// .env を読み込んでローカル・Docker双方で同じ挙動にする
+	if err := godotenv.Load(); err != nil {
+		log.Printf("Warning: could not load .env file: %v", err)
+	}
+
 	// 環境変数の読み込み
 	port := os.Getenv("PORT")
 	if port == "" {
