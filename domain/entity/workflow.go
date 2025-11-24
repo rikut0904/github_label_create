@@ -1,0 +1,64 @@
+package entity
+
+type Workflow struct {
+	Path    string
+	Content string
+	Message string
+}
+
+func DefaultSetupLabelsWorkflow() Workflow {
+	return Workflow{
+		Path:    ".github/workflows/setup-labels.yml",
+		Message: "Add setup-labels workflow",
+		Content: `name: Setup Labels
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  setup-labels:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check if already setup
+        id: check
+        run: |
+          if gh label list --repo ${{ github.repository }} --json name --jq '.[].name' | grep -q "^refactor$"; then
+            echo "skip=true" >> $GITHUB_OUTPUT
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Delete all existing labels
+        if: steps.check.outputs.skip == 'false'
+        run: |
+          gh label list --repo ${{ github.repository }} --json name --jq '.[].name' | while read -r label; do
+            gh label delete "$label" --repo ${{ github.repository }} --yes
+          done
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create labels
+        if: steps.check.outputs.skip == 'false'
+        run: |
+          labels=(
+            "bug|d73a4a|バグ報告"
+            "enhancement|a2eeef|新機能追加"
+            "documentation|0075ca|ドキュメント改善"
+            "refactor|fbca04|リファクタリング"
+            "performance|5319e7|パフォーマンス改善"
+            "dependencies|0366d6|依存関係の更新"
+          )
+
+          for label in "${labels[@]}"; do
+            IFS='|' read -r name color description <<< "$label"
+            gh label create "$name" --repo ${{ github.repository }} --color "$color" --description "$description"
+          done
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+`,
+	}
+}
