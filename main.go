@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/joho/godotenv"
 
@@ -35,6 +36,7 @@ func main() {
 	if privateKey == "" {
 		log.Fatal("GITHUB_PRIVATE_KEY is required")
 	}
+	privateKey = strings.ReplaceAll(privateKey, `\n`, "\n")
 
 	webhookSecret := os.Getenv("WEBHOOK_SECRET")
 
