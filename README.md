@@ -54,6 +54,7 @@ github-setup-app/
      - Contents: Read and write
      - Issues: Read and write
      - Metadata: Read-only
+     - Secrets: Read and write (シークレット登録に必要)
    - **Subscribe to events**:
      - Repository
      - Workflow run
@@ -125,9 +126,12 @@ ngrok http 8080
 
 1. 新しいリポジトリが作成される
 2. このGitHub Appが `repository.created` イベントを受信
-3. setup-labels ワークフローファイルを自動追加
-4. setup-labels ワークフローが実行される
-5. ワークフローが成功完了すると `workflow_run.completed` イベントを受信
-6. リポジトリを自動削除
+3. リポジトリに `APP_ID` と `APP_PRIVATE_KEY` のシークレットを自動登録
+4. setup-labels ワークフローファイルを自動追加
+5. setup-labels ワークフローが実行される
+6. ワークフローが成功完了すると `workflow_run.completed` イベントを受信
+7. リポジトリを自動削除
 
-**注意**: setup-labels ワークフローが成功完了すると、そのリポジトリは自動的に削除されます。
+**注意**:
+- setup-labels ワークフローが成功完了すると、そのリポジトリは自動的に削除されます。
+- シークレットは各リポジトリに自動的に登録されるため、手動での設定は不要です。

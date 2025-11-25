@@ -10,7 +10,7 @@ func DefaultSetupLabelsWorkflow() Workflow {
 	return Workflow{
 		Path:    ".github/workflows/setup-labels.yml",
 		Message: "Add setup-labels workflow",
-		Content: `name: Setup Labels
+		Content: `name: setup-labels
 
 on:
   push:
@@ -21,6 +21,13 @@ jobs:
   setup-labels:
     runs-on: ubuntu-latest
     steps:
+      - name: Generate GitHub App Token
+        id: generate-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
       - name: Check if already setup
         id: check
         run: |
@@ -30,7 +37,7 @@ jobs:
             echo "skip=false" >> $GITHUB_OUTPUT
           fi
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ steps.generate-token.outputs.token }}
 
       - name: Delete all existing labels
         if: steps.check.outputs.skip == 'false'
@@ -39,7 +46,7 @@ jobs:
             gh label delete "$label" --repo ${{ github.repository }} --yes
           done
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ steps.generate-token.outputs.token }}
 
       - name: Create labels
         if: steps.check.outputs.skip == 'false'
@@ -58,7 +65,7 @@ jobs:
             gh label create "$name" --repo ${{ github.repository }} --color "$color" --description "$description"
           done
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ steps.generate-token.outputs.token }}
 `,
 	}
 }

@@ -9,24 +9,53 @@ import (
 )
 
 type SetupRepositoryUseCase struct {
-	githubRepo repository.GitHubRepository
+	githubRepo       repository.GitHubRepository
+	appID            string
+	appPrivateKey    string
 }
 
-func NewSetupRepositoryUseCase(githubRepo repository.GitHubRepository) *SetupRepositoryUseCase {
+func NewSetupRepositoryUseCase(githubRepo repository.GitHubRepository, appID, appPrivateKey string) *SetupRepositoryUseCase {
 	return &SetupRepositoryUseCase{
-		githubRepo: githubRepo,
+		githubRepo:    githubRepo,
+		appID:         appID,
+		appPrivateKey: appPrivateKey,
 	}
 }
 
 func (uc *SetupRepositoryUseCase) Execute(ctx context.Context, repo entity.Repository) error {
 	log.Printf("Setting up repository: %s/%s", repo.Owner, repo.Name)
 
+	// シークレットを登録
+	if err := uc.createSecrets(ctx, repo); err != nil {
+		log.Printf("Error creating secrets: %v", err)
+		return err
+	}
+
 	// ワークフローファイルを作成
 	if err := uc.createWorkflow(ctx, repo); err != nil {
 		log.Printf("Error creating workflow: %v", err)
+		return err
 	}
 
 	log.Printf("Repository setup completed: %s/%s", repo.Owner, repo.Name)
+	return nil
+}
+
+func (uc *SetupRepositoryUseCase) createSecrets(ctx context.Context, repo entity.Repository) error {
+	log.Printf("Creating secrets for repository: %s/%s", repo.Owner, repo.Name)
+
+	// APP_ID を登録
+	if err := uc.githubRepo.CreateSecret(ctx, repo, "APP_ID", uc.appID); err != nil {
+		return err
+	}
+	log.Printf("Created APP_ID secret")
+
+	// APP_PRIVATE_KEY を登録
+	if err := uc.githubRepo.CreateSecret(ctx, repo, "APP_PRIVATE_KEY", uc.appPrivateKey); err != nil {
+		return err
+	}
+	log.Printf("Created APP_PRIVATE_KEY secret")
+
 	return nil
 }
 
