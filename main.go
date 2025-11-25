@@ -37,14 +37,18 @@ func main() {
 	if privateKeyEnv == "" {
 		log.Fatal("GITHUB_PRIVATE_KEY is required")
 	}
+	privateKeyEnv = strings.TrimSpace(privateKeyEnv)
+	privateKeyEnv = strings.ReplaceAll(privateKeyEnv, "\r\n", "\n")
 	privateKeyEnv = strings.ReplaceAll(privateKeyEnv, `\n`, "\n")
 	privateKey := []byte(privateKeyEnv)
-	if !strings.Contains(privateKeyEnv, "BEGIN") {
+	if !strings.Contains(privateKeyEnv, "BEGIN") || !strings.Contains(privateKeyEnv, "PRIVATE KEY") {
 		decoded, err := base64.StdEncoding.DecodeString(privateKeyEnv)
 		if err != nil {
 			log.Fatal("GITHUB_PRIVATE_KEY must be PEM or base64 encoded PEM content")
 		}
-		privateKey = decoded
+		text := strings.TrimSpace(string(decoded))
+		text = strings.ReplaceAll(text, "\r\n", "\n")
+		privateKey = []byte(text)
 	}
 
 	webhookSecret := os.Getenv("WEBHOOK_SECRET")
