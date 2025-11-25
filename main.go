@@ -56,8 +56,8 @@ func main() {
 	// Infrastructure
 	githubClient := github.NewGitHubClient(appID, privateKey)
 
-	// UseCase
-	setupUseCase := usecase.NewSetupRepositoryUseCase(githubClient)
+	// UseCase (シークレット登録のため appIDStr と privateKeyEnv を渡す)
+	setupUseCase := usecase.NewSetupRepositoryUseCase(githubClient, appIDStr, privateKeyEnv)
 
 	// Handler
 	webhookHandler := handler.NewWebhookHandler(setupUseCase, webhookSecret)
