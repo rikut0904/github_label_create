@@ -43,18 +43,27 @@ func (c *GitHubClient) ListLabels(ctx context.Context, repo entity.Repository) (
 		return nil, err
 	}
 
-	ghLabels, _, err := client.Issues.ListLabels(ctx, repo.Owner, repo.Name, nil)
-	if err != nil {
-		return nil, err
-	}
+	opts := &github.ListOptions{PerPage: 100}
+	var labels []entity.Label
 
-	labels := make([]entity.Label, len(ghLabels))
-	for i, l := range ghLabels {
-		labels[i] = entity.Label{
-			Name:        l.GetName(),
-			Color:       l.GetColor(),
-			Description: l.GetDescription(),
+	for {
+		ghLabels, resp, err := client.Issues.ListLabels(ctx, repo.Owner, repo.Name, opts)
+		if err != nil {
+			return nil, err
 		}
+
+		for _, l := range ghLabels {
+			labels = append(labels, entity.Label{
+				Name:        l.GetName(),
+				Color:       l.GetColor(),
+				Description: l.GetDescription(),
+			})
+		}
+
+		if resp == nil || resp.NextPage == 0 {
+			break
+		}
+		opts.Page = resp.NextPage
 	}
 
 	return labels, nil
@@ -67,6 +76,11 @@ func (c *GitHubClient) DeleteLabel(ctx context.Context, repo entity.Repository, 
 	}
 
 	_, err = client.Issues.DeleteLabel(ctx, repo.Owner, repo.Name, name)
+	if err != nil {
+		if respErr, ok := err.(*github.ErrorResponse); ok && respErr.Response != nil && respErr.Response.StatusCode == http.StatusNotFound {
+			return nil
+		}
+	}
 	return err
 }
 
