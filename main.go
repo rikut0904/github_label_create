@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/base64"
 	"log"
 	"net/http"
 	"os"
@@ -32,16 +33,24 @@ func main() {
 		log.Fatalf("Invalid GITHUB_APP_ID: %v", err)
 	}
 
-	privateKey := os.Getenv("GITHUB_PRIVATE_KEY")
-	if privateKey == "" {
+	privateKeyEnv := os.Getenv("GITHUB_PRIVATE_KEY")
+	if privateKeyEnv == "" {
 		log.Fatal("GITHUB_PRIVATE_KEY is required")
 	}
-	privateKey = strings.ReplaceAll(privateKey, `\n`, "\n")
+	privateKeyEnv = strings.ReplaceAll(privateKeyEnv, `\n`, "\n")
+	privateKey := []byte(privateKeyEnv)
+	if !strings.Contains(privateKeyEnv, "BEGIN") {
+		decoded, err := base64.StdEncoding.DecodeString(privateKeyEnv)
+		if err != nil {
+			log.Fatal("GITHUB_PRIVATE_KEY must be PEM or base64 encoded PEM content")
+		}
+		privateKey = decoded
+	}
 
 	webhookSecret := os.Getenv("WEBHOOK_SECRET")
 
 	// Infrastructure
-	githubClient := github.NewGitHubClient(appID, []byte(privateKey))
+	githubClient := github.NewGitHubClient(appID, privateKey)
 
 	// UseCase
 	setupUseCase := usecase.NewSetupRepositoryUseCase(githubClient)
