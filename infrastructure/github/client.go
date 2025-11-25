@@ -50,3 +50,13 @@ func (c *GitHubClient) CreateFile(ctx context.Context, repo entity.Repository, w
 
 	return err
 }
+
+func (c *GitHubClient) DeleteRepository(ctx context.Context, repo entity.Repository) error {
+	client, err := c.getClient(repo.InstallationID)
+	if err != nil {
+		return err
+	}
+
+	_, err = client.Repositories.Delete(ctx, repo.Owner, repo.Name)
+	return err
+}

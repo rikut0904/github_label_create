@@ -51,14 +51,21 @@ func (h *WebhookHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	eventType := r.Header.Get("X-GitHub-Event")
-	if eventType != "repository" {
-		w.WriteHeader(http.StatusOK)
-		return
-	}
 
+	switch eventType {
+	case "repository":
+		h.handleRepositoryEvent(w, payload)
+	case "workflow_run":
+		h.handleWorkflowRunEvent(w, payload)
+	default:
+		w.WriteHeader(http.StatusOK)
+	}
+}
+
+func (h *WebhookHandler) handleRepositoryEvent(w http.ResponseWriter, payload []byte) {
 	var event github.RepositoryEvent
 	if err := json.Unmarshal(payload, &event); err != nil {
-		log.Printf("Error parsing payload: %v", err)
+		log.Printf("Error parsing repository event: %v", err)
 		http.Error(w, "Error parsing payload", http.StatusBadRequest)
 		return
 	}
@@ -83,6 +90,53 @@ func (h *WebhookHandler) Handle(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("Processing"))
+}
+
+func (h *WebhookHandler) handleWorkflowRunEvent(w http.ResponseWriter, payload []byte) {
+	var event github.WorkflowRunEvent
+	if err := json.Unmarshal(payload, &event); err != nil {
+		log.Printf("Error parsing workflow_run event: %v", err)
+		http.Error(w, "Error parsing payload", http.StatusBadRequest)
+		return
+	}
+
+	// completed かつ success の場合のみ処理
+	if event.GetAction() != "completed" {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
+	if event.GetWorkflowRun().GetConclusion() != "success" {
+		log.Printf("Workflow %s completed with conclusion: %s, skipping deletion",
+			event.GetWorkflowRun().GetName(),
+			event.GetWorkflowRun().GetConclusion())
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
+	// setup-labels ワークフローが完了した場合のみリポジトリを削除
+	if event.GetWorkflowRun().GetName() != "setup-labels" {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
+	repo := entity.Repository{
+		Owner:          event.GetRepo().GetOwner().GetLogin(),
+		Name:           event.GetRepo().GetName(),
+		InstallationID: event.GetInstallation().GetID(),
+	}
+
+	go func() {
+		ctx := context.Background()
+		if err := h.setupUseCase.DeleteRepository(ctx, repo); err != nil {
+			log.Printf("Error deleting repository: %v", err)
+		} else {
+			log.Printf("Successfully deleted repository: %s/%s", repo.Owner, repo.Name)
+		}
+	}()
+
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("Processing deletion"))
 }
 
 func (h *WebhookHandler) verifySignature(payload []byte, signature string) bool {
