@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
@@ -74,7 +75,8 @@ func (h *WebhookHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	go func() {
-		if err := h.setupUseCase.Execute(r.Context(), repo); err != nil {
+		ctx := context.Background()
+		if err := h.setupUseCase.Execute(ctx, repo); err != nil {
 			log.Printf("Error setting up repository: %v", err)
 		}
 	}()
