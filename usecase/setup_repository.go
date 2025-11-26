@@ -37,6 +37,18 @@ func (uc *SetupRepositoryUseCase) Execute(ctx context.Context, repo entity.Repos
 		return err
 	}
 
+	// LICENSEファイルを作成
+	if err := uc.createLicenseFile(ctx, repo); err != nil {
+		log.Printf("Error creating LICENSE file: %v", err)
+		return err
+	}
+
+	// CONTRIBUTING.mdファイルを作成
+	if err := uc.createContributingFile(ctx, repo); err != nil {
+		log.Printf("Error creating CONTRIBUTING.md file: %v", err)
+		return err
+	}
+
 	log.Printf("Repository setup completed: %s/%s", repo.Owner, repo.Name)
 	return nil
 }
@@ -67,6 +79,28 @@ func (uc *SetupRepositoryUseCase) createWorkflow(ctx context.Context, repo entit
 	}
 
 	log.Printf("Created workflow file")
+	return nil
+}
+
+func (uc *SetupRepositoryUseCase) createLicenseFile(ctx context.Context, repo entity.Repository) error {
+	license := entity.DefaultLicenseFile()
+
+	if err := uc.githubRepo.CreateFile(ctx, repo, license); err != nil {
+		return err
+	}
+
+	log.Printf("Created LICENSE file")
+	return nil
+}
+
+func (uc *SetupRepositoryUseCase) createContributingFile(ctx context.Context, repo entity.Repository) error {
+	contributing := entity.DefaultContributingFile()
+
+	if err := uc.githubRepo.CreateFile(ctx, repo, contributing); err != nil {
+		return err
+	}
+
+	log.Printf("Created CONTRIBUTING.md file")
 	return nil
 }
 

@@ -41,15 +41,15 @@ func (c *GitHubClient) getClient(installationID int64) (*github.Client, error) {
 	return github.NewClient(&http.Client{Transport: itr}), nil
 }
 
-func (c *GitHubClient) CreateFile(ctx context.Context, repo entity.Repository, workflow entity.Workflow) error {
+func (c *GitHubClient) CreateFile(ctx context.Context, repo entity.Repository, file entity.FileContent) error {
 	client, err := c.getClient(repo.InstallationID)
 	if err != nil {
 		return err
 	}
 
-	_, _, err = client.Repositories.CreateFile(ctx, repo.Owner, repo.Name, workflow.Path, &github.RepositoryContentFileOptions{
-		Message: github.String(workflow.Message),
-		Content: []byte(workflow.Content),
+	_, _, err = client.Repositories.CreateFile(ctx, repo.Owner, repo.Name, file.GetPath(), &github.RepositoryContentFileOptions{
+		Message: github.String(file.GetMessage()),
+		Content: []byte(file.GetContent()),
 	})
 
 	return err
