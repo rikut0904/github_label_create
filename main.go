@@ -27,6 +27,7 @@ func main() {
 		port = "8080"
 	}
 
+	// このGitHub App（リポジトリ操作用）
 	appIDStr := os.Getenv("GITHUB_APP_ID")
 	appID, err := strconv.ParseInt(appIDStr, 10, 64)
 	if err != nil {
@@ -51,13 +52,36 @@ func main() {
 		privateKey = []byte(text)
 	}
 
+	// ラベル操作専用GitHub App
+	labelAppIDStr := os.Getenv("LABEL_APP_ID")
+	if labelAppIDStr == "" {
+		log.Fatal("LABEL_APP_ID is required")
+	}
+
+	labelPrivateKeyEnv := os.Getenv("LABEL_PRIVATE_KEY")
+	if labelPrivateKeyEnv == "" {
+		log.Fatal("LABEL_PRIVATE_KEY is required")
+	}
+	labelPrivateKeyEnv = strings.TrimSpace(labelPrivateKeyEnv)
+	labelPrivateKeyEnv = strings.ReplaceAll(labelPrivateKeyEnv, "\r\n", "\n")
+	labelPrivateKeyEnv = strings.ReplaceAll(labelPrivateKeyEnv, `\n`, "\n")
+	if !strings.Contains(labelPrivateKeyEnv, "BEGIN") || !strings.Contains(labelPrivateKeyEnv, "PRIVATE KEY") {
+		decoded, err := base64.StdEncoding.DecodeString(labelPrivateKeyEnv)
+		if err != nil {
+			log.Fatal("LABEL_PRIVATE_KEY must be PEM or base64 encoded PEM content")
+		}
+		text := strings.TrimSpace(string(decoded))
+		text = strings.ReplaceAll(text, "\r\n", "\n")
+		labelPrivateKeyEnv = text
+	}
+
 	webhookSecret := os.Getenv("WEBHOOK_SECRET")
 
 	// Infrastructure
 	githubClient := github.NewGitHubClient(appID, privateKey)
 
-	// UseCase
-	setupUseCase := usecase.NewSetupRepositoryUseCase(githubClient)
+	// UseCase (シークレット登録のため labelAppIDStr と labelPrivateKeyEnv を渡す)
+	setupUseCase := usecase.NewSetupRepositoryUseCase(githubClient, labelAppIDStr, labelPrivateKeyEnv)
 
 	// Handler
 	webhookHandler := handler.NewWebhookHandler(setupUseCase, webhookSecret)
