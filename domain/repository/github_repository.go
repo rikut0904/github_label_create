@@ -8,5 +8,6 @@ import (
 
 type GitHubRepository interface {
 	CreateFile(ctx context.Context, repo entity.Repository, workflow entity.Workflow) error
-	DeleteRepository(ctx context.Context, repo entity.Repository) error
+	DeleteWorkflowFile(ctx context.Context, repo entity.Repository, path string) error
+	CreateSecret(ctx context.Context, repo entity.Repository, secretName, secretValue string) error
 }
