@@ -39,11 +39,13 @@ github-setup-app/
 
 ## セットアップ
 
-### 1. GitHub App を作成
+### 1. GitHub App を2つ作成
+
+#### 1-1. メインApp（リポジトリ操作用）
 
 1. GitHub Settings → Developer settings → GitHub Apps → New GitHub App
 2. 以下を設定:
-   - **App name**: 任意の名前
+   - **App name**: `Repository Setup App` (任意の名前)
    - **Homepage URL**: Railway のURL（後で設定可）
    - **Webhook URL**: `https://your-app.railway.app/webhook`
    - **Webhook secret**: 任意の文字列（メモしておく）
@@ -51,8 +53,7 @@ github-setup-app/
 3. Permissions:
    - **Repository permissions**:
      - Administration: Read and write (リポジトリ削除に必要)
-     - Contents: Read and write
-     - Issues: Read and write
+     - Contents: Read and write (ワークフローファイル作成に必要)
      - Metadata: Read-only
      - Secrets: Read and write (シークレット登録に必要)
    - **Subscribe to events**:
@@ -60,21 +61,44 @@ github-setup-app/
      - Workflow run
 
 4. 作成後:
-   - App ID をメモ
-   - Private key を生成してダウンロード
+   - App ID をメモ (`GITHUB_APP_ID`)
+   - Private key を生成してダウンロード (`GITHUB_PRIVATE_KEY`)
+
+#### 1-2. ラベル操作専用App
+
+1. GitHub Settings → Developer settings → GitHub Apps → New GitHub App
+2. 以下を設定:
+   - **App name**: `Label Manager` (任意の名前)
+   - **Homepage URL**: 任意のURL
+   - **Webhook**: **チェックを外す**（このAppはWebhook不要）
+
+3. Permissions:
+   - **Repository permissions**:
+     - Issues: Read and write (ラベル操作に必要)
+     - Metadata: Read-only
+
+4. **Where can this GitHub App be installed?**
+   - Only on this account
+
+5. 作成後:
+   - App ID をメモ (`LABEL_APP_ID`)
+   - Private key を生成してダウンロード (`LABEL_PRIVATE_KEY`)
+   - **Install App** → 自分のアカウント → All repositories を選択
 
 ### 2. Railway にデプロイ
 
 1. Railway で新規プロジェクトを作成
 2. このリポジトリをデプロイ
 3. 環境変数を設定:
-   - `GITHUB_APP_ID`: App ID
-   - `GITHUB_PRIVATE_KEY`: Private key の内容（改行を `\n` に置換）
+   - `GITHUB_APP_ID`: メインAppのID
+   - `GITHUB_PRIVATE_KEY`: メインAppの秘密鍵（改行を `\n` に置換）
+   - `LABEL_APP_ID`: ラベル操作AppのID
+   - `LABEL_PRIVATE_KEY`: ラベル操作Appの秘密鍵（改行を `\n` に置換）
    - `WEBHOOK_SECRET`: Webhook secret
 
-### 3. GitHub App をインストール
+### 3. メインApp をインストール
 
-1. GitHub App の設定画面 → Install App
+1. メインAppの設定画面 → Install App
 2. 対象のアカウント/Organization を選択
 3. All repositories または特定のリポジトリを選択
 
@@ -82,8 +106,10 @@ github-setup-app/
 
 | 変数名 | 説明 |
 |--------|------|
-| `GITHUB_APP_ID` | GitHub App の ID |
-| `GITHUB_PRIVATE_KEY` | Private key（PEM形式） |
+| `GITHUB_APP_ID` | メインApp（リポジトリ操作用）の ID |
+| `GITHUB_PRIVATE_KEY` | メインAppの秘密鍵（PEM形式） |
+| `LABEL_APP_ID` | ラベル操作専用Appの ID |
+| `LABEL_PRIVATE_KEY` | ラベル操作Appの秘密鍵（PEM形式） |
 | `WEBHOOK_SECRET` | Webhook の署名検証用シークレット |
 | `PORT` | サーバーポート（Railway が自動設定） |
 
@@ -125,13 +151,22 @@ ngrok http 8080
 ## 動作フロー
 
 1. 新しいリポジトリが作成される
-2. このGitHub Appが `repository.created` イベントを受信
-3. リポジトリに `APP_ID` と `APP_PRIVATE_KEY` のシークレットを自動登録
+2. メインAppが `repository.created` イベントを受信
+3. リポジトリに `APP_ID` と `APP_PRIVATE_KEY` のシークレットを自動登録（ラベル操作App用）
 4. setup-labels ワークフローファイルを自動追加
 5. setup-labels ワークフローが実行される
+   - ラベル操作Appの認証情報を使用
+   - 既存ラベル削除とカスタムラベル作成
 6. ワークフローが成功完了すると `workflow_run.completed` イベントを受信
-7. リポジトリを自動削除
+7. メインAppがリポジトリを自動削除
 
 **注意**:
 - setup-labels ワークフローが成功完了すると、そのリポジトリは自動的に削除されます。
 - シークレットは各リポジトリに自動的に登録されるため、手動での設定は不要です。
+
+## セキュリティ設計
+
+- **権限分離**: リポジトリ操作用とラベル操作用で別々のGitHub Appを使用
+- **最小権限**: ラベル操作Appは Issues 権限のみ
+- **短命**: リポジトリはワークフロー完了後すぐに削除される
+- **秘密鍵の分離**: 各リポジトリに配布される秘密鍵はラベル操作用のみ
