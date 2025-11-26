@@ -126,15 +126,122 @@ cat private-key.pem | tr '\n' '\\n' | sed 's/\\n$//'
 
 ## ローカル開発
 
+### 方法1: Go で直接実行
+
 ```bash
 # 依存関係のインストール
 go mod download
+
+# .env ファイルを作成
+cp .env.example .env
+# .env を編集して環境変数を設定
 
 # 実行
 go run main.go
 
 # ngrok でトンネル作成（Webhook テスト用）
 ngrok http 8080
+```
+
+### 方法2: Docker で実行
+
+#### 2-1. .env ファイルを作成
+
+```bash
+cp .env.example .env
+```
+
+`.env` ファイルを編集して環境変数を設定:
+
+```env
+# メインApp（リポジトリ操作用）
+GITHUB_APP_ID=123456
+GITHUB_PRIVATE_KEY=-----BEGIN RSA PRIVATE KEY-----\nMIIEpAIBAAKCAQEA...\n-----END RSA PRIVATE KEY-----
+
+# ラベル操作専用App
+LABEL_APP_ID=789012
+LABEL_PRIVATE_KEY=-----BEGIN RSA PRIVATE KEY-----\nMIIEpQIBAAKCAQEB...\n-----END RSA PRIVATE KEY-----
+
+# Webhook Secret
+WEBHOOK_SECRET=your-webhook-secret
+
+# Port
+PORT=8080
+```
+
+**注意**: 秘密鍵は改行を `\n` に置換してください。
+
+#### 2-2. Docker イメージをビルド
+
+```bash
+docker build -t github-setup-app .
+```
+
+#### 2-3. コンテナを起動
+
+```bash
+docker run -p 8080:8080 --env-file .env github-setup-app
+```
+
+または、環境変数を直接指定:
+
+```bash
+docker run -p 8080:8080 \
+  -e GITHUB_APP_ID=123456 \
+  -e GITHUB_PRIVATE_KEY="-----BEGIN RSA PRIVATE KEY-----\n...\n-----END RSA PRIVATE KEY-----" \
+  -e LABEL_APP_ID=789012 \
+  -e LABEL_PRIVATE_KEY="-----BEGIN RSA PRIVATE KEY-----\n...\n-----END RSA PRIVATE KEY-----" \
+  -e WEBHOOK_SECRET=your-webhook-secret \
+  github-setup-app
+```
+
+#### 2-4. 動作確認
+
+```bash
+# ヘルスチェック
+curl http://localhost:8080/health
+# レスポンス: OK
+```
+
+#### 2-5. ngrok でトンネル作成（Webhook テスト用）
+
+```bash
+ngrok http 8080
+```
+
+ngrok の URL を GitHub App の Webhook URL に設定:
+```
+https://xxxx-xx-xxx-xxx-xx.ngrok-free.app/webhook
+```
+
+### Docker Compose で実行
+
+`docker-compose.yml` を作成:
+
+```yaml
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env
+    restart: unless-stopped
+```
+
+実行:
+
+```bash
+# 起動
+docker-compose up -d
+
+# ログ確認
+docker-compose logs -f
+
+# 停止
+docker-compose down
 ```
 
 ## 作成されるラベル
