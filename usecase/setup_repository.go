@@ -70,13 +70,14 @@ func (uc *SetupRepositoryUseCase) createWorkflow(ctx context.Context, repo entit
 	return nil
 }
 
-func (uc *SetupRepositoryUseCase) DeleteRepository(ctx context.Context, repo entity.Repository) error {
-	log.Printf("Deleting repository: %s/%s", repo.Owner, repo.Name)
+func (uc *SetupRepositoryUseCase) DeleteWorkflow(ctx context.Context, repo entity.Repository) error {
+	log.Printf("Deleting workflow file: %s/%s", repo.Owner, repo.Name)
 
-	if err := uc.githubRepo.DeleteRepository(ctx, repo); err != nil {
+	workflowPath := ".github/workflows/setup-labels.yml"
+	if err := uc.githubRepo.DeleteWorkflowFile(ctx, repo, workflowPath); err != nil {
 		return err
 	}
 
-	log.Printf("Repository deleted successfully: %s/%s", repo.Owner, repo.Name)
+	log.Printf("Workflow file deleted successfully: %s/%s", repo.Owner, repo.Name)
 	return nil
 }
