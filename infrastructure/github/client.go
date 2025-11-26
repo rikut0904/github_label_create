@@ -55,13 +55,24 @@ func (c *GitHubClient) CreateFile(ctx context.Context, repo entity.Repository, w
 	return err
 }
 
-func (c *GitHubClient) DeleteRepository(ctx context.Context, repo entity.Repository) error {
+func (c *GitHubClient) DeleteWorkflowFile(ctx context.Context, repo entity.Repository, path string) error {
 	client, err := c.getClient(repo.InstallationID)
 	if err != nil {
 		return err
 	}
 
-	_, err = client.Repositories.Delete(ctx, repo.Owner, repo.Name)
+	// ファイルの SHA を取得
+	fileContent, _, _, err := client.Repositories.GetContents(ctx, repo.Owner, repo.Name, path, nil)
+	if err != nil {
+		return fmt.Errorf("failed to get file: %w", err)
+	}
+
+	// ファイルを削除
+	_, _, err = client.Repositories.DeleteFile(ctx, repo.Owner, repo.Name, path, &github.RepositoryContentFileOptions{
+		Message: github.String("Remove workflow file after setup completion"),
+		SHA:     fileContent.SHA,
+	})
+
 	return err
 }
 

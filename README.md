@@ -7,7 +7,7 @@
 - リポジトリ作成時に自動実行
 - 既存ラベルを削除し、カスタムラベルを作成
 - setup-labels ワークフローファイルを追加
-- setup-labels ワークフロー完了後、自動的にリポジトリを削除
+- setup-labels ワークフロー完了後、自動的にワークフローファイルを削除
 
 ## アーキテクチャ
 
@@ -52,8 +52,7 @@ github-setup-app/
 
 3. Permissions:
    - **Repository permissions**:
-     - Administration: Read and write (リポジトリ削除に必要)
-     - Contents: Read and write (ワークフローファイル作成に必要)
+     - Contents: Read and write (ワークフローファイル作成・削除に必要)
      - Metadata: Read-only
      - Secrets: Read and write (シークレット登録に必要)
    - **Subscribe to events**:
@@ -265,15 +264,16 @@ docker-compose down
    - ラベル操作Appの認証情報を使用
    - 既存ラベル削除とカスタムラベル作成
 6. ワークフローが成功完了すると `workflow_run.completed` イベントを受信
-7. メインAppがリポジトリを自動削除
+7. メインAppがワークフローファイル (`.github/workflows/setup-labels.yml`) を自動削除
 
 **注意**:
-- setup-labels ワークフローが成功完了すると、そのリポジトリは自動的に削除されます。
+- setup-labels ワークフローが成功完了すると、ワークフローファイルは自動的に削除されます。
 - シークレットは各リポジトリに自動的に登録されるため、手動での設定は不要です。
+- リポジトリ自体は削除されず、ラベルが設定された状態で残ります。
 
 ## セキュリティ設計
 
 - **権限分離**: リポジトリ操作用とラベル操作用で別々のGitHub Appを使用
 - **最小権限**: ラベル操作Appは Issues 権限のみ
-- **短命**: リポジトリはワークフロー完了後すぐに削除される
+- **クリーンアップ**: ワークフローファイルは完了後すぐに自動削除される
 - **秘密鍵の分離**: 各リポジトリに配布される秘密鍵はラベル操作用のみ

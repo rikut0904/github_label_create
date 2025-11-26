@@ -128,15 +128,15 @@ func (h *WebhookHandler) handleWorkflowRunEvent(w http.ResponseWriter, payload [
 
 	go func() {
 		ctx := context.Background()
-		if err := h.setupUseCase.DeleteRepository(ctx, repo); err != nil {
-			log.Printf("Error deleting repository: %v", err)
+		if err := h.setupUseCase.DeleteWorkflow(ctx, repo); err != nil {
+			log.Printf("Error deleting workflow file: %v", err)
 		} else {
-			log.Printf("Successfully deleted repository: %s/%s", repo.Owner, repo.Name)
+			log.Printf("Successfully deleted workflow file: %s/%s", repo.Owner, repo.Name)
 		}
 	}()
 
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("Processing deletion"))
+	w.Write([]byte("Processing workflow deletion"))
 }
 
 func (h *WebhookHandler) verifySignature(payload []byte, signature string) bool {
