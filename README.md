@@ -137,16 +137,8 @@ docker-compose up
 - ✅ Webhook 署名検証
 - ✅ シークレット暗号化（libsodium互換）
 
-## ライセンス
-
-MIT License
-
-## 貢献
-
-Issue や Pull Request を歓迎します！
-
 ## サポート
 
 問題が発生した場合:
 1. [docs/setup.md](./docs/setup.md) のトラブルシューティングを確認
-2. [Issues](https://github.com/yourusername/github-setup-app/issues) で報告
+2. [Issues](https://github.com/rikut0904/github-setup-app/issues) で報告

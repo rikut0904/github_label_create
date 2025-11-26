@@ -13,7 +13,7 @@
 ### 1. リポジトリをクローン
 
 ```bash
-git clone https://github.com/yourusername/github-setup-app.git
+git clone https://github.com/rikut0904/github-setup-app.git
 cd github-setup-app
 ```
 
@@ -74,10 +74,8 @@ https://xxxx-xx-xxx-xxx-xx.ngrok-free.app/webhook
 # ビルド
 docker build -t github-setup-app .
 
-# 実行
-docker run -p 8080:8080 --env-file .env github-setup-app
 
-# または Docker Compose で
+# Docker Compose で実行
 docker-compose up
 ```
 
@@ -304,34 +302,6 @@ docker run -p 8080:8080 --env-file .env github-setup-app
 **必要な設定**:
 - ポート: `8080`（環境変数 `PORT` で変更可能）
 - 環境変数: `GITHUB_APP_ID`, `GITHUB_PRIVATE_KEY`, `LABEL_APP_ID`, `LABEL_PRIVATE_KEY`, `WEBHOOK_SECRET`
-
----
-
-## コーディング規約
-
-### Go のスタイル
-
-- [Effective Go](https://golang.org/doc/effective_go) に従う
-- `gofmt` でフォーマット
-- `golint` でリント
-
-### コミットメッセージ
-
-```
-<type>: <subject>
-
-<body>
-
-🤖 Generated with Claude Code
-Co-Authored-By: Claude <noreply@anthropic.com>
-```
-
-**Type**:
-- `feat`: 新機能
-- `fix`: バグ修正
-- `docs`: ドキュメント
-- `refactor`: リファクタリング
-- `test`: テスト
 
 ---
 
