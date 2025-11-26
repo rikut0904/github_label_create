@@ -9,6 +9,7 @@ import (
 
 	"github.com/bradleyfalzon/ghinstallation/v2"
 	"github.com/google/go-github/v57/github"
+	"golang.org/x/crypto/blake2b"
 	"golang.org/x/crypto/nacl/box"
 
 	"github-setup-app/domain/entity"
@@ -126,11 +127,18 @@ func sealBox(message []byte, publicKey *[32]byte) ([]byte, error) {
 		return nil, err
 	}
 
-	// nonce を生成（ephemeralPublicKey + publicKey のハッシュ）
+	// nonce を生成（BLAKE2b hash of ephemeralPublicKey + publicKey）
 	var nonce [24]byte
-	copy(nonce[:], ephemeralPublicKey[:24])
+	nonceHash, err := blake2b.New(24, nil)
+	if err != nil {
+		return nil, err
+	}
+	nonceHash.Write(ephemeralPublicKey[:])
+	nonceHash.Write(publicKey[:])
+	copy(nonce[:], nonceHash.Sum(nil))
 
 	// メッセージを暗号化
+	// 結果: ephemeralPublicKey (32 bytes) + encrypted message
 	encrypted := box.Seal(ephemeralPublicKey[:], message, &nonce, publicKey, ephemeralPrivateKey)
 
 	return encrypted, nil
