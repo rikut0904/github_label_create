@@ -41,18 +41,28 @@ func (c *GitHubClient) getClient(installationID int64) (*github.Client, error) {
 	return github.NewClient(&http.Client{Transport: itr}), nil
 }
 
-func (c *GitHubClient) CreateFile(ctx context.Context, repo entity.Repository, workflow entity.Workflow) error {
+func (c *GitHubClient) CreateFile(ctx context.Context, repo entity.Repository, file entity.FileContent) error {
 	client, err := c.getClient(repo.InstallationID)
 	if err != nil {
 		return err
 	}
 
-	_, _, err = client.Repositories.CreateFile(ctx, repo.Owner, repo.Name, workflow.Path, &github.RepositoryContentFileOptions{
-		Message: github.String(workflow.Message),
-		Content: []byte(workflow.Content),
+	_, _, err = client.Repositories.CreateFile(ctx, repo.Owner, repo.Name, file.GetPath(), &github.RepositoryContentFileOptions{
+		Message: github.String(file.GetMessage()),
+		Content: []byte(file.GetContent()),
 	})
 
 	return err
+}
+
+func (c *GitHubClient) CreateFiles(ctx context.Context, repo entity.Repository, files []entity.FileContent, commitMessage string) error {
+	// 高レベルAPIで各ファイルを個別に作成
+	for _, file := range files {
+		if err := c.CreateFile(ctx, repo, file); err != nil {
+			return fmt.Errorf("failed to create file %s: %w", file.GetPath(), err)
+		}
+	}
+	return nil
 }
 
 func (c *GitHubClient) DeleteWorkflowFile(ctx context.Context, repo entity.Repository, path string) error {

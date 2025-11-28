@@ -31,9 +31,9 @@ func (uc *SetupRepositoryUseCase) Execute(ctx context.Context, repo entity.Repos
 		return err
 	}
 
-	// ワークフローファイルを作成
-	if err := uc.createWorkflow(ctx, repo); err != nil {
-		log.Printf("Error creating workflow: %v", err)
+	// テンプレートファイルを一括作成
+	if err := uc.createTemplateFiles(ctx, repo); err != nil {
+		log.Printf("Error creating template files: %v", err)
 		return err
 	}
 
@@ -59,14 +59,22 @@ func (uc *SetupRepositoryUseCase) createSecrets(ctx context.Context, repo entity
 	return nil
 }
 
-func (uc *SetupRepositoryUseCase) createWorkflow(ctx context.Context, repo entity.Repository) error {
-	workflow := entity.DefaultSetupLabelsWorkflow()
+func (uc *SetupRepositoryUseCase) createTemplateFiles(ctx context.Context, repo entity.Repository) error {
+	log.Printf("Creating template files for repository: %s/%s", repo.Owner, repo.Name)
 
-	if err := uc.githubRepo.CreateFile(ctx, repo, workflow); err != nil {
+	// ワークフローファイルを最後にpushするため、順番を調整
+	files := []entity.FileContent{
+		entity.DefaultLicenseFile(),
+		entity.DefaultContributingFile(),
+		entity.DefaultSetupLabelsWorkflow(), // 最後
+	}
+
+	// 各ファイルを個別に作成
+	if err := uc.githubRepo.CreateFiles(ctx, repo, files, "Add Template"); err != nil {
 		return err
 	}
 
-	log.Printf("Created workflow file")
+	log.Printf("Created all template files")
 	return nil
 }
 
