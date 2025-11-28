@@ -56,80 +56,12 @@ func (c *GitHubClient) CreateFile(ctx context.Context, repo entity.Repository, f
 }
 
 func (c *GitHubClient) CreateFiles(ctx context.Context, repo entity.Repository, files []entity.FileContent, commitMessage string) error {
-	client, err := c.getClient(repo.InstallationID)
-	if err != nil {
-		return err
-	}
-
-	// mainブランチの最新コミットを取得（存在しない場合はnil）
-	ref, _, err := client.Git.GetRef(ctx, repo.Owner, repo.Name, "refs/heads/main")
-	var baseTreeSHA string
-	var parents []*github.Commit
-
-	if err != nil {
-		// リポジトリが空の場合、初回コミットとして作成
-		baseTreeSHA = ""
-		parents = nil
-	} else {
-		// 既存のブランチがある場合、最新コミットのツリーを取得
-		commit, _, err := client.Git.GetCommit(ctx, repo.Owner, repo.Name, ref.Object.GetSHA())
-		if err != nil {
-			return fmt.Errorf("failed to get commit: %w", err)
-		}
-		baseTreeSHA = commit.Tree.GetSHA()
-		parents = []*github.Commit{commit}
-	}
-
-	// 新しいツリーエントリを作成
-	var entries []*github.TreeEntry
+	// 各ファイルを個別に作成（空のリポジトリでも動作する）
 	for _, file := range files {
-		content := file.GetContent()
-		entries = append(entries, &github.TreeEntry{
-			Path:    github.String(file.GetPath()),
-			Mode:    github.String("100644"),
-			Type:    github.String("blob"),
-			Content: github.String(content),
-		})
-	}
-
-	// 新しいツリーを作成
-	tree, _, err := client.Git.CreateTree(ctx, repo.Owner, repo.Name, baseTreeSHA, entries)
-	if err != nil {
-		return fmt.Errorf("failed to create tree: %w", err)
-	}
-
-	// 新しいコミットを作成
-	newCommit, _, err := client.Git.CreateCommit(ctx, repo.Owner, repo.Name, &github.Commit{
-		Message: github.String(commitMessage),
-		Tree:    tree,
-		Parents: parents,
-	}, nil)
-	if err != nil {
-		return fmt.Errorf("failed to create commit: %w", err)
-	}
-
-	// refを更新または作成
-	if ref == nil {
-		// 新しいブランチを作成
-		newRef := &github.Reference{
-			Ref: github.String("refs/heads/main"),
-			Object: &github.GitObject{
-				SHA: newCommit.SHA,
-			},
-		}
-		_, _, err = client.Git.CreateRef(ctx, repo.Owner, repo.Name, newRef)
-		if err != nil {
-			return fmt.Errorf("failed to create ref: %w", err)
-		}
-	} else {
-		// 既存のrefを更新
-		ref.Object.SHA = newCommit.SHA
-		_, _, err = client.Git.UpdateRef(ctx, repo.Owner, repo.Name, ref, false)
-		if err != nil {
-			return fmt.Errorf("failed to update ref: %w", err)
+		if err := c.CreateFile(ctx, repo, file); err != nil {
+			return fmt.Errorf("failed to create file %s: %w", file.GetPath(), err)
 		}
 	}
-
 	return nil
 }
 
