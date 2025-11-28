@@ -55,6 +55,62 @@ func (c *GitHubClient) CreateFile(ctx context.Context, repo entity.Repository, f
 	return err
 }
 
+func (c *GitHubClient) CreateFiles(ctx context.Context, repo entity.Repository, files []entity.FileContent, commitMessage string) error {
+	client, err := c.getClient(repo.InstallationID)
+	if err != nil {
+		return err
+	}
+
+	// mainブランチの最新コミットを取得
+	ref, _, err := client.Git.GetRef(ctx, repo.Owner, repo.Name, "refs/heads/main")
+	if err != nil {
+		return fmt.Errorf("failed to get ref: %w", err)
+	}
+
+	// 最新コミットのツリーを取得
+	commit, _, err := client.Git.GetCommit(ctx, repo.Owner, repo.Name, ref.Object.GetSHA())
+	if err != nil {
+		return fmt.Errorf("failed to get commit: %w", err)
+	}
+
+	// 新しいツリーエントリを作成
+	var entries []*github.TreeEntry
+	for _, file := range files {
+		content := file.GetContent()
+		entries = append(entries, &github.TreeEntry{
+			Path:    github.String(file.GetPath()),
+			Mode:    github.String("100644"),
+			Type:    github.String("blob"),
+			Content: github.String(content),
+		})
+	}
+
+	// 新しいツリーを作成
+	tree, _, err := client.Git.CreateTree(ctx, repo.Owner, repo.Name, commit.Tree.GetSHA(), entries)
+	if err != nil {
+		return fmt.Errorf("failed to create tree: %w", err)
+	}
+
+	// 新しいコミットを作成
+	newCommit, _, err := client.Git.CreateCommit(ctx, repo.Owner, repo.Name, &github.Commit{
+		Message: github.String(commitMessage),
+		Tree:    tree,
+		Parents: []*github.Commit{commit},
+	}, nil)
+	if err != nil {
+		return fmt.Errorf("failed to create commit: %w", err)
+	}
+
+	// refを更新
+	ref.Object.SHA = newCommit.SHA
+	_, _, err = client.Git.UpdateRef(ctx, repo.Owner, repo.Name, ref, false)
+	if err != nil {
+		return fmt.Errorf("failed to update ref: %w", err)
+	}
+
+	return nil
+}
+
 func (c *GitHubClient) DeleteWorkflowFile(ctx context.Context, repo entity.Repository, path string) error {
 	client, err := c.getClient(repo.InstallationID)
 	if err != nil {

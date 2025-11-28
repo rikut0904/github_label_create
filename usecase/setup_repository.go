@@ -31,21 +31,9 @@ func (uc *SetupRepositoryUseCase) Execute(ctx context.Context, repo entity.Repos
 		return err
 	}
 
-	// ワークフローファイルを作成
-	if err := uc.createWorkflow(ctx, repo); err != nil {
-		log.Printf("Error creating workflow: %v", err)
-		return err
-	}
-
-	// LICENSEファイルを作成
-	if err := uc.createLicenseFile(ctx, repo); err != nil {
-		log.Printf("Error creating LICENSE file: %v", err)
-		return err
-	}
-
-	// CONTRIBUTING.mdファイルを作成
-	if err := uc.createContributingFile(ctx, repo); err != nil {
-		log.Printf("Error creating CONTRIBUTING.md file: %v", err)
+	// テンプレートファイルを一括作成
+	if err := uc.createTemplateFiles(ctx, repo); err != nil {
+		log.Printf("Error creating template files: %v", err)
 		return err
 	}
 
@@ -71,36 +59,22 @@ func (uc *SetupRepositoryUseCase) createSecrets(ctx context.Context, repo entity
 	return nil
 }
 
-func (uc *SetupRepositoryUseCase) createWorkflow(ctx context.Context, repo entity.Repository) error {
-	workflow := entity.DefaultSetupLabelsWorkflow()
+func (uc *SetupRepositoryUseCase) createTemplateFiles(ctx context.Context, repo entity.Repository) error {
+	log.Printf("Creating template files for repository: %s/%s", repo.Owner, repo.Name)
 
-	if err := uc.githubRepo.CreateFile(ctx, repo, workflow); err != nil {
+	// すべてのテンプレートファイルを準備
+	files := []entity.FileContent{
+		entity.DefaultSetupLabelsWorkflow(),
+		entity.DefaultLicenseFile(),
+		entity.DefaultContributingFile(),
+	}
+
+	// 1つのコミットで全ファイルを作成
+	if err := uc.githubRepo.CreateFiles(ctx, repo, files, "Add Template"); err != nil {
 		return err
 	}
 
-	log.Printf("Created workflow file")
-	return nil
-}
-
-func (uc *SetupRepositoryUseCase) createLicenseFile(ctx context.Context, repo entity.Repository) error {
-	license := entity.DefaultLicenseFile()
-
-	if err := uc.githubRepo.CreateFile(ctx, repo, license); err != nil {
-		return err
-	}
-
-	log.Printf("Created LICENSE file")
-	return nil
-}
-
-func (uc *SetupRepositoryUseCase) createContributingFile(ctx context.Context, repo entity.Repository) error {
-	contributing := entity.DefaultContributingFile()
-
-	if err := uc.githubRepo.CreateFile(ctx, repo, contributing); err != nil {
-		return err
-	}
-
-	log.Printf("Created CONTRIBUTING.md file")
+	log.Printf("Created all template files in a single commit")
 	return nil
 }
 
