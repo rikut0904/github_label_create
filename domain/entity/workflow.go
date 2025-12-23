@@ -74,11 +74,10 @@ jobs:
         run: |
           labels=(
             "bug|d73a4a|バグ報告"
-            "enhancement|a2eeef|新機能追加"
-            "documentation|0075ca|ドキュメント改善"
+            "feature|a2eeef|新機能追加"
+            "docs|0075ca|ドキュメント改善"
             "refactor|fbca04|リファクタリング"
-            "performance|5319e7|パフォーマンス改善"
-            "dependencies|0366d6|依存関係の更新"
+            "other|5319e7|その他"
           )
 
           for label in "${labels[@]}"; do
