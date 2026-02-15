@@ -1,6 +1,0 @@
-.env
-*.pem
-.git
-.gitignore
-README.md
-docker-compose.yml
