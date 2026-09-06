@@ -55,16 +55,6 @@ func (c *GitHubClient) CreateFile(ctx context.Context, repo entity.Repository, f
 	return err
 }
 
-func (c *GitHubClient) CreateFiles(ctx context.Context, repo entity.Repository, files []entity.FileContent, commitMessage string) error {
-	// 高レベルAPIで各ファイルを個別に作成
-	for _, file := range files {
-		if err := c.CreateFile(ctx, repo, file); err != nil {
-			return fmt.Errorf("failed to create file %s: %w", file.GetPath(), err)
-		}
-	}
-	return nil
-}
-
 func (c *GitHubClient) DeleteWorkflowFile(ctx context.Context, repo entity.Repository, path string) error {
 	client, err := c.getClient(repo.InstallationID)
 	if err != nil {

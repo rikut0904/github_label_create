@@ -106,8 +106,8 @@ func (uc *SetupRepositoryUseCase) Execute(ctx context.Context, repo entity.Repos
         return err
     }
 
-    // 2. テンプレートファイル作成（LICENSE、CONTRIBUTING.md、ワークフロー）
-    if err := uc.createTemplateFiles(ctx, repo); err != nil {
+    // 2. ラベル設定用ワークフロー作成
+    if err := uc.createLabelWorkflow(ctx, repo); err != nil {
         return err
     }
 
@@ -122,7 +122,7 @@ func (uc *SetupRepositoryUseCase) Execute(ctx context.Context, repo entity.Repos
 **ファイル**:
 - `entity/`: データ構造の定義
   - `repository.go`: Repository エンティティ
-  - `workflow.go`: Workflow エンティティとテンプレートファイル（LICENSE、CONTRIBUTING.md）
+  - `workflow.go`: ラベル設定用Workflowエンティティ
   - `label.go`: Label エンティティ
 - `repository/`: インターフェースの定義
   - `github_repository.go`: GitHubリポジトリインターフェース
@@ -136,7 +136,6 @@ func (uc *SetupRepositoryUseCase) Execute(ctx context.Context, repo entity.Repos
 // 例: リポジトリインターフェース
 type GitHubRepository interface {
     CreateFile(ctx context.Context, repo entity.Repository, file entity.FileContent) error
-    CreateFiles(ctx context.Context, repo entity.Repository, files []entity.FileContent, commitMessage string) error
     DeleteWorkflowFile(ctx context.Context, repo entity.Repository, path string) error
     CreateSecret(ctx context.Context, repo entity.Repository, secretName, secretValue string) error
 }
@@ -167,16 +166,6 @@ func (c *GitHubClient) CreateFile(ctx context.Context, repo entity.Repository, f
     // GitHub Repositories.CreateFile API を呼び出す
 }
 
-// 複数ファイルを作成（高レベルAPIを複数回実行）
-func (c *GitHubClient) CreateFiles(ctx context.Context, repo entity.Repository, files []entity.FileContent, commitMessage string) error {
-    // 各ファイルを個別に作成（空のリポジトリでも動作）
-    for _, file := range files {
-        if err := c.CreateFile(ctx, repo, file); err != nil {
-            return err
-        }
-    }
-    return nil
-}
 ```
 
 ---

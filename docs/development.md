@@ -207,7 +207,8 @@ go test ./...
    Creating secrets for repository: user/repo
    Created APP_ID secret
    Created APP_PRIVATE_KEY secret
-   Created workflow file
+   Creating label workflow for repository: user/repo
+   Created label workflow
    Repository setup completed: user/repo
    ```
 

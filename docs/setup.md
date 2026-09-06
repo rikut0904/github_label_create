@@ -134,16 +134,13 @@ cat private-key.pem | tr '\n' '\\n' | sed 's/\\n$//'
 1. **新しいリポジトリを作成**してテスト（空のリポジトリでもOK）
 2. 数秒後、以下が自動的に実行されます:
    - シークレットが登録される（APP_ID、APP_PRIVATE_KEY）
-   - テンプレートファイルが作成される
-     - LICENSE（1番目のコミット）
-     - CONTRIBUTING.md（2番目のコミット）
-     - .github/workflows/setup-labels.yml（3番目のコミット）
+   - ラベル設定用ワークフローが作成される
+     - .github/workflows/setup-labels.yml
    - ワークフローが自動実行される
    - カスタムラベルが設定される
    - ワークフローファイルが削除される
 
 3. **確認項目**:
-   - リポジトリに LICENSE と CONTRIBUTING.md が作成されている
    - Settings → Secrets and variables → Actions にシークレットが登録されている
    - Issues → Labels にカスタムラベルが作成されている
    - `.github/workflows/setup-labels.yml` が削除されている
@@ -176,8 +173,8 @@ Setting up repository: user/repo
 Creating secrets for repository: user/repo
 Created APP_ID secret
 Created APP_PRIVATE_KEY secret
-Creating template files for repository: user/repo
-Created all template files
+Creating label workflow for repository: user/repo
+Created label workflow
 Repository setup completed: user/repo
 ```
 
